@@ -249,7 +249,7 @@ sparks/
 ├── configurator.py   # Adaptive tool/model routing per domain
 ├── persistence.py    # Cross-session learning (synapses + knowledge base)
 ├── evolution.py      # AutoAgent-style evolution loop
-├── llm.py            # Claude Code CLI or Anthropic API backend
+├── llm.py            # Multi-provider LLM (Claude/GPT/Gemini/Ollama)
 ├── cost.py           # Model routing + budget tracking
 ├── context.py        # Per-tool context assembly
 ├── data.py           # Data loading + chunking
@@ -275,16 +275,41 @@ sparks/
 
 ## Backends
 
-### Claude Code CLI (free with subscription)
+Set `SPARKS_BACKEND` to choose your LLM provider:
+
+| Backend | Provider | Setup | Structured Output |
+|---|---|---|---|
+| `cli` (default) | Claude Code CLI | Free with subscription | JSON-in-prompt |
+| `anthropic` | Anthropic API | `ANTHROPIC_API_KEY` | Native tool_use |
+| `openai` | OpenAI API | `OPENAI_API_KEY` | Native json_schema |
+| `google` | Google Gemini | `GOOGLE_API_KEY` | JSON-in-prompt |
+| `openai-compat` | Any OpenAI-compatible | `SPARKS_COMPAT_BASE_URL` | JSON-in-prompt |
+
 ```bash
+# Claude Code CLI (default, free with subscription)
 sparks run --goal "..." --data ./path/
+
+# OpenAI
+SPARKS_BACKEND=openai OPENAI_API_KEY=sk-... sparks run --goal "..." --data ./path/
+
+# Google Gemini
+SPARKS_BACKEND=google GOOGLE_API_KEY=... sparks run --goal "..." --data ./path/
+
+# Ollama (local)
+SPARKS_BACKEND=openai-compat SPARKS_COMPAT_BASE_URL=http://localhost:11434/v1 sparks run ...
+
+# Groq
+SPARKS_BACKEND=openai-compat SPARKS_COMPAT_BASE_URL=https://api.groq.com/openai/v1 \
+  SPARKS_COMPAT_API_KEY=gsk-... sparks run ...
 ```
 
-### Anthropic API
+Model names auto-map between providers. `claude-sonnet` becomes `gpt-4o-mini` on OpenAI, `gemini-2.5-flash` on Google. Native model names (e.g. `gpt-4o`, `gemini-2.5-pro`) also work directly.
+
+Install provider-specific dependencies:
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-export SPARKS_BACKEND=api
-sparks run --goal "..." --data ./path/
+pip install -e ".[openai]"    # OpenAI
+pip install -e ".[google]"    # Gemini
+pip install -e ".[all]"       # All providers
 ```
 
 ---
@@ -311,12 +336,61 @@ The 13 thinking tools are the atomic operations of creative thought — used ide
 - [x] Full loop (validate -> evolve -> predict -> feedback)
 - [x] Lens bootstrapping + adaptive routing
 - [x] Cross-session learning (persistent weights)
-- [x] Claude Code CLI + API backends
+- [x] Multi-model (Claude, GPT-4o, Gemini, Ollama, Groq)
 - [x] A-Test validation (12 principles, 91% avg confidence)
 - [ ] Embedding-based convergence detection
-- [ ] Multi-model support (GPT-4, Gemini)
 - [ ] Large dataset benchmarks
 
 ---
 
 *Built with [Claude Code](https://claude.ai/code). The framework that thinks about thinking.*
+
+---
+
+## 한국어
+
+### Sparks가 뭔가요?
+
+모든 AI 에이전트 프레임워크는 **무엇을 할지**(도구 호출, 상태 관리)를 가르칩니다.
+Sparks는 **어떻게 생각할지**(관찰, 추상화, 유추, 통합)를 가르칩니다.
+
+"생각의 탄생"(Root-Bernstein, 1999) 책에서 아인슈타인, 피카소, 다빈치, 파인만이 공통으로 사용한 **13가지 사고 도구**를 AI 프리미티브로 구현했습니다.
+
+### 핵심 차별점
+
+```
+LangGraph/CrewAI:  지휘자가 연주자에게 순서대로 명령
+Sparks:            지휘자 없음. 신경 회로의 연결 가중치에서 실행 순서가 자연 발생
+```
+
+- **신경 회로**: ~30개 뉴런 집단이 가중치를 통해 신호 전파. if-else 규칙이 아닌 동역학에서 행동이 창발
+- **STDP 학습**: 도구가 성공하면 도파민 신호 → 해당 연결 강화. 세션마다 회로가 진화
+- **13도구 전체 구현**: 관찰, 형상화, 추상화, 패턴인식, 패턴형성, 유추, 몸으로생각하기, 감정이입, 차원적사고, 모형, 놀이, 변형, 통합
+- **풀 루프**: 원리 추출 → 검증 → 진화 → 예측 → 피드백 → 반복
+- **멀티모델**: Claude, GPT-4o, Gemini, Ollama, Groq 지원
+
+### 검증 결과 (A-Test)
+
+15개월치 시장 관찰 데이터를 넣고 "핵심 법칙을 찾아라"고 했더니, 사람이 수개월에 걸쳐 수동으로 추출한 3가지 핵심 법칙을 **독립적으로 재발견** + 추가 9개 원리를 찾아냈습니다.
+
+| 모드 | 원리 | 평균 신뢰도 | 커버리지 | 비용 |
+|---|---|---|---|---|
+| standard (7도구) | 7개 | 80% | 68% | $6.06 |
+| **deep (13도구)** | **12개** | **91%** | **85%** | **$9.02** |
+
+### 사용법
+
+```bash
+git clone https://github.com/PROVE1352/cognitive-sparks.git
+cd cognitive-sparks
+pip install -e .
+
+# 데이터 분석 (자율 신경계 모드)
+sparks run --goal "핵심 원리를 찾아라" --data ./데이터/ --depth deep
+
+# 원리 검증 + 진화
+sparks loop -p output/results.md -d ./새데이터/ --cycles 3
+
+# GPT-4o로 실행
+SPARKS_BACKEND=openai OPENAI_API_KEY=sk-... sparks run --goal "..." --data ./데이터/
+```
