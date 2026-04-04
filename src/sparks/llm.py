@@ -47,7 +47,7 @@ def llm_call(
         input=full_prompt,
         capture_output=True,
         text=True,
-        timeout=600,
+        timeout=900,
     )
 
     if result.returncode != 0:

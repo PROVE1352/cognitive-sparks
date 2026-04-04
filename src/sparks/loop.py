@@ -225,7 +225,7 @@ def validate(
         for i, p in enumerate(principles.principles)
     )
 
-    data_text = new_data.all_text(max_chars=200000)
+    data_text = new_data.all_text(max_chars=80000)
 
     prompt = f"""You are a PRINCIPLE VALIDATOR. Test each principle against new data.
 
