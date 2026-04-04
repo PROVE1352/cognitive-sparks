@@ -207,6 +207,18 @@ def run_autonomic(
         winner = max(candidates, key=candidates.get)
         activation = candidates[winner]
 
+        # 5.5 Prevent same tool firing consecutively (refractory enforcement)
+        if firing_log and firing_log[-1] == winner:
+            circuit.populations[winner].refractory = 1.5
+            # Try second-best candidate instead
+            del candidates[winner]
+            if candidates:
+                winner = max(candidates, key=candidates.get)
+                activation = candidates[winner]
+            else:
+                ticks += 1
+                continue
+
         # 6. Check should_run (local ganglion decision)
         tool = tools[winner]
         if hasattr(tool, 'should_run') and not tool.should_run(state):
@@ -276,7 +288,13 @@ def run_autonomic(
             update_synapses(state, winner, success=False)
 
         # 9. Post-fire: tool enters refractory (won't fire again immediately)
-        circuit.populations[winner].refractory = circuit.populations[winner].refractory_period
+        # Synthesize gets long refractory (it's a final integrator, not a repeater)
+        if winner == "synthesize":
+            circuit.populations[winner].refractory = 5.0
+        else:
+            circuit.populations[winner].refractory = max(
+                circuit.populations[winner].refractory_period, 0.5
+            )
 
         firing_log.append(winner)
 
