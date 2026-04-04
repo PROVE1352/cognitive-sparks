@@ -6,9 +6,24 @@ from pydantic import BaseModel
 
 # $/1M tokens (input, output)
 MODEL_COSTS: dict[str, tuple[float, float]] = {
+    # Anthropic
     "claude-opus-4-20250514": (15.00, 75.00),
     "claude-sonnet-4-20250514": (3.00, 15.00),
     "claude-haiku-4-5-20251001": (0.80, 4.00),
+    # OpenAI
+    "gpt-4o": (2.50, 10.00),
+    "gpt-4o-mini": (0.15, 0.60),
+    "gpt-4.1": (2.00, 8.00),
+    "gpt-4.1-mini": (0.40, 1.60),
+    "gpt-4.1-nano": (0.10, 0.40),
+    "o1": (15.00, 60.00),
+    "o3": (10.00, 40.00),
+    "o3-mini": (1.10, 4.40),
+    "o4-mini": (1.10, 4.40),
+    # Google
+    "gemini-2.5-pro": (1.25, 10.00),
+    "gemini-2.5-flash": (0.15, 0.60),
+    "gemini-2.0-flash-lite": (0.075, 0.30),
 }
 
 # Tool → model mapping

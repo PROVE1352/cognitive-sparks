@@ -8,11 +8,16 @@ version = "0.1.0"
 description = "13 cognitive primitives that teach AI to think — not just compute."
 requires-python = ">=3.11"
 dependencies = [
-    "anthropic>=0.40.0",
     "pydantic>=2.0",
     "typer>=0.12",
     "rich>=13.0",
 ]
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.40.0"]
+openai = ["openai>=1.0"]
+google = ["google-genai>=1.0"]
+all = ["anthropic>=0.40.0", "openai>=1.0", "google-genai>=1.0"]
 
 [project.scripts]
 sparks = "sparks.cli:app"
