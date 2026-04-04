@@ -15,6 +15,7 @@ from sparks.nervous import (
     competitive_tool_selection, update_synapses, check_feedback_needed,
     consolidate, boost_rhythm_group, record_signal_contributor,
 )
+from sparks.circuit import NeuralCircuit
 from sparks.output import format_output
 from sparks.persistence import SessionMemory
 from sparks.state import CognitiveState, Phase, SynthesisOutput
@@ -52,6 +53,15 @@ def run(goal: str, data_path: str, depth: str = "standard", nervous_system: bool
     memory = SessionMemory()
 
     state = CognitiveState(goal=goal, depth=depth)
+
+    # ── Neural Circuit (real nervous system) ──
+    circuit = None
+    if nervous_system:
+        circuit = NeuralCircuit()
+        if circuit.load():
+            console.print(f"   [dim]🧠 Loaded persistent circuit (t={circuit.time_step})[/]")
+        else:
+            console.print(f"   [dim]🧠 Initialized new neural circuit[/]")
 
     # Load persistent synapses from past sessions
     persistent_synapses = memory.start_session()
@@ -114,7 +124,7 @@ def run(goal: str, data_path: str, depth: str = "standard", nervous_system: bool
         console.print("   [yellow]⚠️ Nervous system DISABLED (ablation mode)[/]")
 
     # ── Phase 1: Sequential ──
-    output = _run_round(state, tools, data, tracker, "Phase 1")
+    output = _run_round(state, tools, data, tracker, "Phase 1", circuit=circuit)
 
     # ── Phase 2: Iterate (standard/deep only) ──
     if depth != "quick" and should_continue(state, budget.max_rounds):
@@ -137,7 +147,7 @@ def run(goal: str, data_path: str, depth: str = "standard", nervous_system: bool
         # Store predictions for use in observe tool
         state._predictions = round1_predictions
 
-        phase2_output = _run_round(state, tools, data, tracker, "Phase 2")
+        phase2_output = _run_round(state, tools, data, tracker, "Phase 2", circuit=circuit)
         # Keep Phase 2 output only if synthesize ran; otherwise preserve Phase 1
         if phase2_output.principles:
             output = phase2_output
@@ -154,6 +164,10 @@ def run(goal: str, data_path: str, depth: str = "standard", nervous_system: bool
 
         # Convergence check
         state.signals = sense(state)
+        if circuit:
+            sensory = NeuralCircuit.encode_state(state)
+            circuit.update(sensory)
+            console.print(f"   [dim]{circuit.status().split(chr(10))[0]}[/]")
         if state.signals.convergence:
             console.print("[green]✅ Convergence detected[/]")
         else:
@@ -171,8 +185,11 @@ def run(goal: str, data_path: str, depth: str = "standard", nervous_system: bool
     output.contradictions = state.contradictions
     output.analogies = output.analogies or state.analogies
 
-    # Save session (synapses + knowledge base)
+    # Save session (synapses + knowledge base + circuit)
     memory.end_session(state, output)
+    if circuit:
+        circuit.save()
+        console.print(f"   [dim]🧠 Circuit saved (t={circuit.time_step})[/]")
 
     console.print(f"\n[bold]💰 Total cost:[/] ${tracker.total_cost:.2f} / ${budget.max_cost:.2f}")
     console.print(f"[bold]📋 {len(state.principles)} principles[/] (avg confidence: {_avg_conf(state):.0%})")
@@ -188,13 +205,27 @@ def _run_round(
     data: DataStore,
     tracker: CostTracker,
     phase_label: str,
+    circuit: NeuralCircuit = None,
 ) -> SynthesisOutput:
     """Execute one round of all active tools."""
     output = SynthesisOutput()
 
-    # Lateral inhibition + rhythm groups (Phase 2+)
-    if state.phase != Phase.SEQUENTIAL and len(tools) > 4:
-        # Rhythm boost: tools in active rhythm group get priority
+    # ── Circuit-based tool selection (if circuit available) ──
+    if circuit and state.phase != Phase.SEQUENTIAL:
+        # Feed current state to circuit
+        sensory = NeuralCircuit.encode_state(state)
+        for _ in range(3):  # Run 3 update steps for signal propagation
+            circuit.update(sensory, dt=0.5)
+
+        active_names = circuit.get_active_tools(threshold=0.25)
+        # Always include synthesize
+        if "synthesize" not in active_names and "synthesize" in tools:
+            active_names.append("synthesize")
+        # Only keep tools we actually have
+        active_names = [n for n in active_names if n in tools]
+        console.print(f"   [dim]🧠 Circuit selection ({circuit.get_mode()}): {active_names}[/]")
+    elif state.phase != Phase.SEQUENTIAL and len(tools) > 4:
+        # Fallback: old lateral inhibition
         rhythm_boosts = boost_rhythm_group(state, tools)
         for name, boost in rhythm_boosts.items():
             state.signals.tool_rewards[name] = state.signals.tool_rewards.get(name, 0) + boost
@@ -265,10 +296,14 @@ def _run_round(
                     (name == "synthesize" and result is not None)
                 )
                 update_synapses(state, name, success=had_new_output)
+                if circuit:
+                    circuit.record_tool_outcome(name, success=had_new_output)
 
             except Exception as e:
                 console.print(f"   [red]❌ {name} failed: {e}[/]")
                 update_synapses(state, name, success=False)
+                if circuit:
+                    circuit.record_tool_outcome(name, success=False)
 
             progress.advance(task)
 
