@@ -40,7 +40,12 @@ def run(
     console.print(f"[bold]Goal:[/] {goal}")
     console.print(f"[bold]Depth:[/] {depth}")
 
-    result = engine_run(goal=goal, data_path=str(data_path), depth=depth, nervous_system=not no_nervous)
+    if not no_nervous:
+        # Autonomic mode: circuit-driven cascade (no TOOL_ORDER)
+        from sparks.autonomic import run_autonomic
+        result = run_autonomic(goal=goal, data_path=str(data_path), depth=depth)
+    else:
+        result = engine_run(goal=goal, data_path=str(data_path), depth=depth, nervous_system=False)
     md = format_output(result, goal)
 
     # Save to file

@@ -89,6 +89,7 @@ class Connection(BaseModel):
 SENSORY = [
     "obs_count", "pat_count", "prin_count", "contra_count",
     "failure_count", "round_num", "confidence_avg", "cost_ratio",
+    "obs_hunger", "pat_hunger", "prin_hunger",  # Absence = signal (like hunger)
 ]
 
 SIGNALS = [
@@ -213,9 +214,12 @@ class NeuralCircuit(BaseModel):
         # Anomaly/contradiction → explore mode
         c("anomaly", "explore", 0.5)
         c("contradiction", "explore", 0.4)
-        # Convergence/diminishing → integrate mode
-        c("convergence", "integrate", 0.5)
+        c("obs_hunger", "explore", 0.3)  # Hungry = explore
+        # Convergence/diminishing/confidence → integrate mode
+        c("convergence", "integrate", 0.6)
         c("diminishing", "integrate", 0.3)
+        c("confidence_avg", "integrate", 0.4)
+        c("prin_count", "integrate", 0.3)
         # Modes inhibit each other (mutual inhibition = winner-take-all)
         c("explore", "integrate", -0.6, sign=-1)
         c("integrate", "explore", -0.6, sign=-1)
@@ -228,9 +232,16 @@ class NeuralCircuit(BaseModel):
         for tool in ["abstract", "analogize", "model", "synthesize", "recognize_patterns"]:
             c("integrate", tool, 0.3)
 
+        # ── Hunger → Tool connections (absence drives action) ──
+        c("obs_hunger", "observe", 0.7)             # Starving for observations → OBSERVE
+        c("obs_hunger", "body_think", 0.4)           # Also try body sensing
+        c("obs_hunger", "shift_dimension", 0.3)      # Try different angles
+        c("pat_hunger", "recognize_patterns", 0.5)   # Need patterns → find them
+        c("pat_hunger", "form_patterns", 0.3)         # Try forming new ones
+        c("prin_hunger", "abstract", 0.5)             # Need principles → abstract
+        c("prin_hunger", "analogize", 0.3)            # Try analogy
+
         # ── Sensory → Tool connections ──
-        # No observations → observe should fire
-        c("obs_count", "observe", -0.4, sign=-1)  # Low obs = high observe drive
         # Observations exist → patterns should fire
         c("obs_count", "recognize_patterns", 0.4)
         # Patterns exist → abstract should fire
@@ -467,7 +478,12 @@ class NeuralCircuit(BaseModel):
 
     @staticmethod
     def encode_state(state) -> dict[str, float]:
-        """Convert CognitiveState to sensory input values (0-1 normalized)."""
+        """Convert CognitiveState to sensory input values (0-1 normalized).
+
+        Key biological insight: ABSENCE is a signal, not zero.
+        Hunger = high glucose-absence signal, not low glucose signal.
+        So we encode both presence AND absence as positive signals.
+        """
         n_obs = len(state.observations)
         n_pat = len(state.patterns)
         n_prin = len(state.principles)
@@ -476,14 +492,19 @@ class NeuralCircuit(BaseModel):
         avg_conf = (sum(p.confidence for p in state.principles) / max(n_prin, 1)) if n_prin else 0
 
         return {
-            "obs_count": min(1.0, n_obs / 50),        # Saturates at 50 obs
-            "pat_count": min(1.0, n_pat / 20),         # Saturates at 20 patterns
-            "prin_count": min(1.0, n_prin / 10),       # Saturates at 10 principles
-            "contra_count": min(1.0, n_contra / 5),    # Saturates at 5 contradictions
-            "failure_count": min(1.0, n_failures / 10), # Saturates at 10 failures
-            "round_num": min(1.0, state.round / 5),    # Saturates at round 5
+            # Presence signals (high when data exists)
+            "obs_count": min(1.0, n_obs / 50),
+            "pat_count": min(1.0, n_pat / 20),
+            "prin_count": min(1.0, n_prin / 10),
+            "contra_count": min(1.0, n_contra / 5),
+            "failure_count": min(1.0, n_failures / 10),
+            "round_num": min(1.0, state.round / 5),
             "confidence_avg": avg_conf,
-            "cost_ratio": getattr(state.signals, 'total_cost', 0) / 20.0,  # Normalized to $20
+            "cost_ratio": getattr(state.signals, 'total_cost', 0) / 20.0,
+            # Absence signals (high when data is MISSING — like hunger)
+            "obs_hunger": max(0.0, 1.0 - n_obs / 20),    # Starving for observations
+            "pat_hunger": max(0.0, 1.0 - n_pat / 8),      # Need patterns
+            "prin_hunger": max(0.0, 1.0 - n_prin / 4),    # Need principles
         }
 
     # ─── Record Tool Outcome (for STDP) ───
