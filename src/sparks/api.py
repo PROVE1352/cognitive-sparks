@@ -149,6 +149,30 @@ class Sparks:
         from sparks.research import to_latex_table
         return to_latex_table(target)
 
+    def meta_improve(
+        self,
+        benchmark_data: str | Path,
+        iterations: int = 3,
+        apply: bool = False,
+        max_risk: str = "low",
+    ) -> dict:
+        """Self-improvement loop: analyze own code → patch → benchmark → keep/rollback.
+
+        Args:
+            benchmark_data: Path to data for benchmarking.
+            iterations: Max improvement cycles.
+            apply: Actually apply changes (False = analysis only).
+            max_risk: "low", "medium", or "high".
+        """
+        from sparks.meta import meta_loop
+        return meta_loop(
+            benchmark_data=str(Path(benchmark_data).resolve()),
+            max_iterations=iterations,
+            depth="quick",
+            apply=apply,
+            max_risk=max_risk,
+        )
+
     def reset_circuit(self):
         """Reset circuit weights to initial values."""
         from sparks.circuit import NeuralCircuit

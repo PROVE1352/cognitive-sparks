@@ -126,6 +126,17 @@ class NeuralCircuit(BaseModel):
     stdp_lr: float = 0.01       # Base learning rate
     stdp_window: int = 3        # Time steps for STDP correlation
 
+    # Homeostatic Learning Rate (Kingson Man et al., "Need is All You Need")
+    # Each tool's lr self-adjusts based on its own performance.
+    # Good performance → lr decreases (exploit: stable weights)
+    # Bad performance → lr increases (explore: rapid relearning)
+    # Domain shift → all lr spike (fast unlearning + relearning)
+    tool_lr: dict[str, float] = {}       # Per-tool adaptive learning rate
+    tool_performance: dict[str, float] = {}  # Exponential moving avg of success
+    lr_min: float = 0.003
+    lr_max: float = 0.05
+    domain_shift_detected: bool = False
+
     # Homeostatic target
     target_rate: float = 0.3    # Desired average firing rate
 
@@ -373,15 +384,24 @@ class NeuralCircuit(BaseModel):
         return max(0.3, min(2.0, base_gain))
 
     def _apply_stdp(self):
-        """Spike-Timing Dependent Plasticity.
+        """Spike-Timing Dependent Plasticity with Homeostatic Learning Rate.
 
-        If source fires BEFORE target → strengthen (LTP)
-        If source fires AFTER target → weaken (LTD)
-        Magnitude modulated by dopamine (reward-modulated STDP).
+        Kingson Man et al. insight: each tool's learning rate self-adjusts.
+        - Good tools: lr decreases → stable, exploit what works
+        - Bad tools: lr increases → rapid relearning, explore alternatives
+        - Domain shift: all lr spike → fast unlearning + relearning
+
+        Standard STDP:
+        - Source fires BEFORE target → strengthen (LTP)
+        - Source fires AFTER target → weaken (LTD)
+        - Magnitude modulated by dopamine (reward-modulated STDP)
         """
         da = 0.0 if self.ablate_dopamine else self.dopamine
         ach = 0.5 if self.ablate_acetylcholine else self.acetylcholine
-        lr = self.stdp_lr * (1.0 + abs(da) * ach)
+        base_lr = self.stdp_lr * (1.0 + abs(da) * ach)
+
+        # Domain shift multiplier: if detected, 3x learning rate for rapid relearning
+        shift_mult = 3.0 if self.domain_shift_detected else 1.0
 
         for conn in self.connections:
             if not conn.plasticity:
@@ -391,6 +411,12 @@ class NeuralCircuit(BaseModel):
             target = self.populations.get(conn.target)
             if not source or not target:
                 continue
+
+            # Use per-tool adaptive lr if target is a tool population
+            if conn.target in TOOLS and conn.target in self.tool_lr:
+                lr = self.tool_lr[conn.target] * (1.0 + abs(da) * ach) * shift_mult
+            else:
+                lr = base_lr * shift_mult
 
             if source.fired and target.fired:
                 # Both fired this step → strengthen (co-activation)
@@ -534,9 +560,10 @@ class NeuralCircuit(BaseModel):
     # ─── Record Tool Outcome (for STDP) ───
 
     def record_tool_outcome(self, tool_name: str, success: bool):
-        """After a tool runs, modulate dopamine based on outcome.
+        """After a tool runs, modulate dopamine and adaptive learning rate.
 
-        This is the reward signal that drives STDP learning.
+        Kingson Man "skin in the game": the tool's own performance directly
+        affects its ability to learn. Good → stable (low lr). Bad → explore (high lr).
         """
         if not self.ablate_dopamine:
             if success:
@@ -552,6 +579,18 @@ class NeuralCircuit(BaseModel):
             else:
                 self.populations[tool_name].baseline = max(0.0,
                     self.populations[tool_name].baseline - 0.01)
+
+        # ── Homeostatic Learning Rate (Kingson Man) ──
+        # Update exponential moving average of performance
+        alpha = 0.3  # EMA decay
+        prev_perf = self.tool_performance.get(tool_name, 0.5)
+        new_perf = alpha * (1.0 if success else 0.0) + (1 - alpha) * prev_perf
+        self.tool_performance[tool_name] = new_perf
+
+        # Adapt learning rate: bad performance → high lr (explore), good → low lr (exploit)
+        # Inverted: lr = lr_max - (lr_max - lr_min) * performance
+        new_lr = self.lr_max - (self.lr_max - self.lr_min) * new_perf
+        self.tool_lr[tool_name] = max(self.lr_min, min(self.lr_max, new_lr))
 
     # ─── Persistence ───
 
@@ -577,6 +616,10 @@ class NeuralCircuit(BaseModel):
                 "norepinephrine": self.norepinephrine,
                 "acetylcholine": self.acetylcholine,
             },
+            "homeostatic_lr": {
+                "tool_lr": self.tool_lr,
+                "tool_performance": self.tool_performance,
+            },
             "time_step": self.time_step,
         }
 
@@ -598,6 +641,11 @@ class NeuralCircuit(BaseModel):
             self.dopamine = mods.get("dopamine", 0.0)
             self.norepinephrine = mods.get("norepinephrine", 0.5)
             self.acetylcholine = mods.get("acetylcholine", 0.5)
+
+            # Restore homeostatic lr
+            hlr = data.get("homeostatic_lr", {})
+            self.tool_lr = hlr.get("tool_lr", {})
+            self.tool_performance = hlr.get("tool_performance", {})
 
             self.time_step = data.get("time_step", 0)
             return True

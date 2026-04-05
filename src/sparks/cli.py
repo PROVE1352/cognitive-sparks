@@ -206,6 +206,31 @@ def optimize(
 
 
 @app.command()
+def meta(
+    data: str = typer.Option(..., "--data", "-d", help="Benchmark data path"),
+    iterations: int = typer.Option(3, "--iterations", "-n", help="Max improvement iterations"),
+    depth: str = typer.Option("quick", "--depth", help="Benchmark depth"),
+    apply: bool = typer.Option(False, "--apply", help="Actually apply changes (default: dry run)"),
+    risk: str = typer.Option("low", "--risk", help="Max risk level: low/medium/high"),
+):
+    """Self-improvement loop: analyze own code → patch → benchmark → keep/rollback."""
+    from sparks.meta import meta_loop
+
+    data_path = Path(data)
+    if not data_path.exists():
+        console.print(f"[red]Data path not found: {data}[/]")
+        raise typer.Exit(1)
+
+    meta_loop(
+        benchmark_data=str(data_path),
+        max_iterations=iterations,
+        depth=depth,
+        apply=apply,
+        max_risk=risk,
+    )
+
+
+@app.command()
 def trace(
     path: str = typer.Option("", "--path", "-p", help="Path to trace JSON (default: latest)"),
 ):
