@@ -753,11 +753,6 @@ class NeuralCircuit(BaseModel):
         self.acetylcholine = 0.5
         self.time_step = 0
 
-
-def _sanitize(name: str) -> str:
-    """Sanitize domain name for filename."""
-    return "".join(c if c.isalnum() or c in "-_" else "_" for c in name.lower()).strip("_")[:50]
-
     # ─── Debug ───
 
     def status(self) -> str:
@@ -780,3 +775,8 @@ def _sanitize(name: str) -> str:
             lines.append(f"  {icon} {name}: {activations[name]:.2f}")
 
         return "\n".join(lines)
+
+
+def _sanitize(name: str) -> str:
+    """Sanitize domain name for filename."""
+    return "".join(c if c.isalnum() or c in "-_" else "_" for c in name.lower()).strip("_")[:50]
