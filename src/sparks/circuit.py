@@ -343,11 +343,16 @@ class NeuralCircuit(BaseModel):
                     source_rate * conn.effective_weight
 
         # 3. Update all non-sensory populations
+        # NE increases noise (stochastic resonance under novelty/arousal)
+        # ACh decreases noise (improved signal fidelity under focused attention)
+        ne = 0.5 if self.ablate_norepinephrine else self.norepinephrine
+        ach = 0.5 if self.ablate_acetylcholine else self.acetylcholine
+        effective_noise = 0.02 * (1.0 + 0.5 * ne) * (1.0 - 0.3 * ach)
         for name, pop in self.populations.items():
             if name not in sensory_input:  # Don't update clamped sensory neurons
                 # Apply neuromodulatory gain
                 pop.gain = self._compute_gain(name)
-                pop.step(currents.get(name, 0.0), dt=dt)
+                pop.step(currents.get(name, 0.0), dt=dt, noise=effective_noise)
 
         # 4. STDP learning
         if not self.ablate_stdp:
@@ -434,6 +439,11 @@ class NeuralCircuit(BaseModel):
                 # Source fired but target didn't → slight weakening
                 conn.weight = max(0.01, conn.weight - lr * 0.1)
 
+        # Enforce Dale's Law: weight represents magnitude, sign encodes polarity
+        for conn in self.connections:
+            if conn.weight < 0.0:
+                conn.weight = 0.0
+
         # Record fire times
         for name, pop in self.populations.items():
             if pop.fired:
@@ -453,6 +463,10 @@ class NeuralCircuit(BaseModel):
             error = pop.rate - self.target_rate
             if abs(error) < 0.05:
                 continue  # Close enough
+
+            # Threshold homeostasis (Turrigiano 1999): slow adaptation (tau=100) prevents
+            # populations from permanently saturating or going silent.
+            pop.threshold = max(0.1, min(0.9, pop.threshold + error / 100.0))
 
             # Scale all incoming connections
             scale = 1.0 - 0.06 * error  # Over-active → shrink, under-active → grow

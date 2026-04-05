@@ -7,6 +7,8 @@ Resume from last checkpoint instead of starting over.
 from __future__ import annotations
 
 import json
+import os
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -14,6 +16,13 @@ from typing import Optional
 from sparks.state import CognitiveState
 
 CHECKPOINT_DIR = Path.home() / ".sparks" / "checkpoints"
+
+
+def _write_checkpoint(path: Path, serialized: str) -> None:
+    """Write checkpoint atomically (temp file + os.replace) to avoid partial reads on crash."""
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(serialized)
+    os.replace(tmp, path)
 
 
 class Checkpoint:
@@ -24,6 +33,7 @@ class Checkpoint:
         self.dir = CHECKPOINT_DIR / self.run_id
         self.dir.mkdir(parents=True, exist_ok=True)
         self.step = 0
+        self._last_write_thread: Optional[threading.Thread] = None
 
     def save(self, state: CognitiveState, tool_name: str, cost_so_far: float):
         """Save state after a tool firing."""
@@ -102,8 +112,14 @@ class Checkpoint:
 
         return state, data["step"], data["cost"]
 
+    def flush(self):
+        """Block until the last background checkpoint write completes. Call at cascade end."""
+        if self._last_write_thread and self._last_write_thread.is_alive():
+            self._last_write_thread.join()
+
     def cleanup(self):
         """Remove checkpoint files after successful completion."""
         import shutil
+        self.flush()
         if self.dir.exists():
             shutil.rmtree(self.dir)

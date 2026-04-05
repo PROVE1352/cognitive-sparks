@@ -1,0 +1,205 @@
+{
+  "depth_quick": {
+    "n_principles": 8,
+    "confidence": 0.89,
+    "coverage": 0.84,
+    "cost": 0.064608,
+    "time": 165.28757548332214,
+    "principles": [
+      {
+        "statement": "Systems degrade gracefully through multi-tier fallback mechanisms, accepting controlled fidelity loss (summarization, compression, truncation) rather than complete failure",
+        "confidence": 0.98
+      },
+      {
+        "statement": "All outputs, cached state, and internal decision inputs must be treated as hints requiring verification against authoritative ground truth before use, even when persisted or cryptographically signed",
+        "confidence": 0.94
+      },
+      {
+        "statement": "Isolation of execution, state, and risk is enforced through three complementary layers—process-level (forked subagents with inherited context), session-level (file mailbox + tmux), and filesystem-level (git worktrees)—each selected for specific risk/coordination profiles",
+        "confidence": 0.96
+      },
+      {
+        "statement": "Complex behaviors are decomposed into gated sequential phases with explicit state checks and trigger conditions between phases, rather than atomic operations, enabling inspection and controlled abort",
+        "confidence": 0.96
+      },
+      {
+        "statement": "Autonomy is intentionally bounded by hard resource constraints (cost, time, retry count) with explicit trade-offs accepting reduced capability in exchange for predictable, measurable cost structure and deadlines",
+        "confidence": 0.91
+      },
+      {
+        "statement": "Information control is enforced through multiple independent, non-redundant vectors—cryptographic signing, training data poisoning (decoy injection), runtime patching prevention, and identifier obfuscation—so compromise of any single vector does not cascade",
+        "confidence": 0.89
+      },
+      {
+        "statement": "State persists across distributed and parallel execution phases through append-only audit logging and real-time context re-reads that create interpretable, resumable continuity without mutable snapshots",
+        "confidence": 0.89
+      },
+      {
+        "statement": "Systems achieve resilience by accepting controlled fidelity loss through multi-tier fallback mechanisms rather than failing catastrophically when perfect execution becomes unavailable",
+        "confidence": 0.98
+      }
+    ]
+  },
+  "depth_standard": {
+    "n_principles": 10,
+    "confidence": 0.68,
+    "coverage": 0.72,
+    "cost": 4.284508799999999,
+    "time": 1782.380443096161,
+    "principles": [
+      {
+        "statement": "A single scarce resource (context window) is the gravitational center that shapes every architectural decision: compression, memory tiering, agent spawning, and schema design are all strategies for managing one binding constraint.",
+        "confidence": 0.95
+      },
+      {
+        "statement": "The architecture structurally cannot solve its own trust problem: the entity that must be contained is the same entity making containment decisions, and no amount of layering resolves this self-reference.",
+        "confidence": 0.92
+      },
+      {
+        "statement": "The system is optimized for forward execution on the happy path while systematically lacking feedback infrastructure — no failure propagation model, no verification loop, no empirical grounding for its own design claims.",
+        "confidence": 0.9
+      },
+      {
+        "statement": "Systems built around scarce, non-fungible resources develop architectural gravity: every major design decision bends toward managing whichever resource constraint currently binds hardest, and as the primary constraint is relieved, the next-most-scarce resource becomes the new gravitational center, forcing architectural reorganization.",
+        "confidence": 0.82
+      },
+      {
+        "statement": "When a system delegates containment decisions to the same class of entity it is trying to contain, it creates an irreducible self-reference that no amount of architectural layering can fully resolve — only hardware-level or out-of-band enforcement can break the loop.",
+        "confidence": 0.75
+      },
+      {
+        "statement": "Complex systems in early maturity develop elaborate forward-execution machinery while feedback infrastructure remains localized and ad-hoc rather than absent — creating blind spots specifically at cross-cutting failure boundaries where no single component owns the feedback path. This is a developmental stage, not a permanent defect, but the system is maximally vulnerable during this window.",
+        "confidence": 0.72
+      },
+      {
+        "statement": "Architectures exposed to competitive environments develop defensive features — anti-distillation, capability concealment, information compartmentalization — that are invisible to analysis focused solely on internal technical constraints and that increasingly rival productive functionality in engineering investment.",
+        "confidence": 0.75
+      },
+      {
+        "statement": "When a system delegates containment decisions to the same class of entity it is trying to contain, it creates an irreducible self-reference: the primary failure mode is not the contained entity breaking rules but gradually redefining what constitutes a violation. Only enforcement mechanisms operating on fundamentally different substrates than the contained process can break the loop.",
+        "confidence": 0.78
+      },
+      {
+        "statement": "Autonomous agents require capabilities orthogonal to interactive modes — scheduling, notification, persistence, crash recovery — that arise from the absence of a human in the loop rather than from relaxed safety constraints. The interactive-to-autonomous transition is not a security dial but a capability-shape change.",
+        "confidence": 0.58
+      },
+      {
+        "statement": "Systems that pervasively distrust cached state — treating all stored information as potentially stale and requiring verification against live sources before action — embody a coherent temporal epistemology where freshness, not completeness, is the primary quality metric. This drives architectures where memory serves as a search index rather than a source of truth.",
+        "confidence": 0.65
+      }
+    ]
+  },
+  "circuit_on": {
+    "n_principles": 10,
+    "confidence": 0.68,
+    "coverage": 0.72,
+    "cost": 4.284508799999999,
+    "time": 1782.380443096161,
+    "principles": [
+      {
+        "statement": "A single scarce resource (context window) is the gravitational center that shapes every architectural decision: compression, memory tiering, agent spawning, and schema design are all strategies for managing one binding constraint.",
+        "confidence": 0.95
+      },
+      {
+        "statement": "The architecture structurally cannot solve its own trust problem: the entity that must be contained is the same entity making containment decisions, and no amount of layering resolves this self-reference.",
+        "confidence": 0.92
+      },
+      {
+        "statement": "The system is optimized for forward execution on the happy path while systematically lacking feedback infrastructure — no failure propagation model, no verification loop, no empirical grounding for its own design claims.",
+        "confidence": 0.9
+      },
+      {
+        "statement": "Systems built around scarce, non-fungible resources develop architectural gravity: every major design decision bends toward managing whichever resource constraint currently binds hardest, and as the primary constraint is relieved, the next-most-scarce resource becomes the new gravitational center, forcing architectural reorganization.",
+        "confidence": 0.82
+      },
+      {
+        "statement": "When a system delegates containment decisions to the same class of entity it is trying to contain, it creates an irreducible self-reference that no amount of architectural layering can fully resolve — only hardware-level or out-of-band enforcement can break the loop.",
+        "confidence": 0.75
+      },
+      {
+        "statement": "Complex systems in early maturity develop elaborate forward-execution machinery while feedback infrastructure remains localized and ad-hoc rather than absent — creating blind spots specifically at cross-cutting failure boundaries where no single component owns the feedback path. This is a developmental stage, not a permanent defect, but the system is maximally vulnerable during this window.",
+        "confidence": 0.72
+      },
+      {
+        "statement": "Architectures exposed to competitive environments develop defensive features — anti-distillation, capability concealment, information compartmentalization — that are invisible to analysis focused solely on internal technical constraints and that increasingly rival productive functionality in engineering investment.",
+        "confidence": 0.75
+      },
+      {
+        "statement": "When a system delegates containment decisions to the same class of entity it is trying to contain, it creates an irreducible self-reference: the primary failure mode is not the contained entity breaking rules but gradually redefining what constitutes a violation. Only enforcement mechanisms operating on fundamentally different substrates than the contained process can break the loop.",
+        "confidence": 0.78
+      },
+      {
+        "statement": "Autonomous agents require capabilities orthogonal to interactive modes — scheduling, notification, persistence, crash recovery — that arise from the absence of a human in the loop rather than from relaxed safety constraints. The interactive-to-autonomous transition is not a security dial but a capability-shape change.",
+        "confidence": 0.58
+      },
+      {
+        "statement": "Systems that pervasively distrust cached state — treating all stored information as potentially stale and requiring verification against live sources before action — embody a coherent temporal epistemology where freshness, not completeness, is the primary quality metric. This drives architectures where memory serves as a search index rather than a source of truth.",
+        "confidence": 0.65
+      }
+    ]
+  },
+  "circuit_off": {
+    "n_principles": 4,
+    "confidence": 0.78,
+    "coverage": 0.68,
+    "cost": 4.504014199999999,
+    "time": 1229.8284804821014,
+    "principles": [
+      {
+        "statement": "In systems with graduated response mechanisms, the control pathway and failure pathway are structurally identical: safety degrades through the same graduated mechanisms that provide normal function, making failure a continuous descent along control dimensions rather than a discrete boundary crossing.",
+        "confidence": 0.95
+      },
+      {
+        "statement": "Systematic self-distrust is self-defeating under resource pressure: each verification layer invalidates prior caches, compounding cost until the system's own epistemic safeguards become the first property sacrificed — so safety erodes from within, not from external attack.",
+        "confidence": 0.93
+      },
+      {
+        "statement": "Structural legibility and behavioral legibility are inversely coupled: isolation and abstraction that make architecture comprehensible to analysts simultaneously render runtime behavior opaque, and deterministic interfaces over probabilistic internals create false illusions of predictability and prevent observers from forming accurate mental models.",
+        "confidence": 0.88
+      },
+      {
+        "statement": "In resource-constrained systems with multiple verification layers, the cost of verification compounds superlinearly: each verification stage invalidates caches from prior stages, and under pressure, the system sacrifices its own epistemic safeguards first—safety erodes endogenously before external attack.",
+        "confidence": 0.93
+      }
+    ]
+  },
+  "baseline": {
+    "n_principles": 1,
+    "cost": 0.1467,
+    "time": 34.03744959831238,
+    "raw_output": "# Core Principles of the Claude Code Agent Harness\n\n**1. The harness is the product, not the model.**\n- **Confidence:** 98%\n- **Evidence:** All three documents converge on this explicitly. Doc 1: \"40-60% of Claude Code's capability comes from orchestration.\" Doc 2: \"The model is the engine; the harness is the car. Nobody buys an engine.\" Doc 3: Alternative models (DeepSeek, Gemini) could slot into the same infrastructure, confirming the harness is the differentiator.\n\n**2. Isolation is the foundational constraint for multi-agent coordination.**\n- **Confidence:** 95%\n- **Evidence:** Three distinct isolation models (fork/teammate/worktree) all enforce the same invariant: subagents must never corrupt parent state. Doc 1: \"Isolation is paramount.\" Process-level, session-level, and filesystem-level separation are provided as graduated options. Dream subagents get read-only bash access — observation without mutation.\n\n**3. Memory must distrust itself.**\n- **Confidence:** 95%\n- **Evidence:** All three documents describe the same three-tier memory system where information is treated as \"hints, not ground truth.\" Agents are explicitly instructed to verify memory against the actual codebase before acting. The autoDream process resolves contradictions and prunes stale entries. This prevents the failure mode where cached knowledge becomes false assumptions.\n\n**4. Context is a scarce resource requiring active, layered management.**\n- **Confidence:** 95%\n- **Evidence:** Five fallback strategies for context overflow (time-clearing, summarization, extraction, full compression, truncation). Three compression modes (MicroCompact, AutoCompact, Full Compact). 14 tracked cache-break vectors. The SYSTEM_PROMPT_DYNAMIC_BOUNDARY splits static/dynamic content to minimize token cost. Doc 2 calls context entropy \"the hardest problem.\"\n\n**5. Security must be architectural, not bolted on.**\n- **Confidence:** 92%\n- **Evidence:** Permission enforcement is separated from model reasoning. A dedicat"
+  },
+  "reproducibility": {
+    "runs": [
+      {
+        "seed": 42,
+        "n_principles": 0,
+        "confidence": 0.0,
+        "cost": 0.0336498,
+        "time": 69.7526626586914,
+        "principles": []
+      },
+      {
+        "seed": 123,
+        "n_principles": 0,
+        "confidence": 0.0,
+        "cost": 0.038687200000000005,
+        "time": 83.41364979743958,
+        "principles": []
+      },
+      {
+        "seed": 777,
+        "n_principles": 0,
+        "confidence": 0.0,
+        "cost": 0.038866200000000004,
+        "time": 79.85202598571777,
+        "principles": []
+      }
+    ],
+    "n_successful": 3,
+    "mean_principles": 0.0,
+    "std_principles": 0.0,
+    "mean_convergence": 0.0,
+    "total_cost": 0.1112032
+  }
+}

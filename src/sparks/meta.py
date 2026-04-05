@@ -231,6 +231,7 @@ def generate_patches(
 4. Mark risk level: "low" (safe refactor), "medium" (behavior change), "high" (structural change)
 5. Only generate patches for insights with clear, concrete fixes
 6. Do NOT change function signatures that are called from other modules unless necessary
+7. file field must be just the filename (e.g. "llm.py", "circuit.py", "tools/observe.py") — NOT "src/sparks/llm.py"
 
 Generate a list of CodePatch objects."""
 
@@ -304,12 +305,18 @@ def apply_patches(
             applied.append(f"SKIP [{patch.risk}] {patch.file}: {patch.reason}")
             continue
 
-        # Find file
-        path = SRC_DIR / patch.file
+        # Find file — normalize path (LLM may generate "src/sparks/foo.py" or just "foo.py")
+        raw = patch.file.strip()
+        # Strip common prefixes
+        for prefix in ("src/sparks/", "sparks/", "src/"):
+            if raw.startswith(prefix):
+                raw = raw[len(prefix):]
+                break
+        path = SRC_DIR / raw
         if not path.exists():
-            path = SRC_DIR / "tools" / patch.file
+            path = SRC_DIR / "tools" / raw
         if not path.exists():
-            applied.append(f"SKIP {patch.file}: file not found")
+            applied.append(f"SKIP {patch.file}: file not found ({raw})")
             continue
 
         content = path.read_text()

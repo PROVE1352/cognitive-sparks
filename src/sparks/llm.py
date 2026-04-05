@@ -17,6 +17,7 @@ import json
 import os
 import re
 import subprocess
+import time
 from typing import Any, Optional, Type
 
 from pydantic import BaseModel
@@ -78,6 +79,19 @@ def _resolve_model(model: str) -> str:
     """Map internal model name to provider-specific model ID."""
     mapping = PROVIDER_MODELS.get(BACKEND, {})
     return mapping.get(model, model)  # Fall through if already native name
+
+
+def _with_retry(fn, *args, **kwargs):
+    """Retry with exponential backoff on transient errors (429, 503)."""
+    for attempt in range(3):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            msg = str(e).lower()
+            is_transient = "429" in msg or "503" in msg or "rate limit" in msg or "overloaded" in msg
+            if not is_transient or attempt == 2:
+                raise
+            time.sleep(2 ** attempt)
 
 
 # ── Public API ──
