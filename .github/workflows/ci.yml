@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-type:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: pip install -e ".[all]"
+      - name: Syntax check (all .py files)
+        run: python -m py_compile src/sparks/*.py src/sparks/tools/*.py
+      - name: Import check
+        run: python -c "from sparks.api import Sparks; print('Import OK')"
+      - name: CLI help
+        run: sparks --help
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        run: pip install build
+      - name: Build package
+        run: python -m build
+      - name: Verify wheel
+        run: |
+          pip install dist/*.whl
+          python -c "from sparks.api import Sparks; print('Wheel install OK')"
+          sparks --help
